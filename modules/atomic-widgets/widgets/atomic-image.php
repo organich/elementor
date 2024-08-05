@@ -33,7 +33,7 @@ class Atomic_Image extends Atomic_Widget_Base {
 		echo "<$escaped_tag></$escaped_tag>";
 	}
 
-	public function get_atomic_controls(): array {
+	public function define_atomic_controls(): array {
 		$tag_control = Select_Control::bind_to( 'tag' )
 			->set_label( __( 'Tag', 'elementor' ) )
 			->set_options( [
@@ -59,10 +59,13 @@ class Atomic_Image extends Atomic_Widget_Base {
 		];
 	}
 
-	public static function get_props_schema(): array {
-		return [
-			'tag' => Atomic_Prop::make()
-				->default( 'img' ),
-		];
-	}
+    protected static function define_props_schema(): array {
+        return [
+            'tag' => Atomic_Prop::make()
+                ->default( 'img' ),
+
+            'alt' => Atomic_Prop::make()
+                ->default( __( 'Your Alt Here', 'elementor' ) ),
+        ];
+    }
 }
