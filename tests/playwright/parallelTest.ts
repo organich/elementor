@@ -8,7 +8,7 @@ export const parallelTest = baseTest.extend< NonNullable<unknown>, { workerStora
 	// Use the same storage state for all tests in this worker.
 	baseURL: ( { workerBaseURL }, use ) => use( workerBaseURL ),
 	workerBaseURL: [ async ( {}, use, testInfo ) => {
-		await use( ( 1 === Number( testInfo.parallelIndex ) ) ? process.env.TEST_SERVER : process.env.DEV_SERVER );
+		await use( ( 1 === Number( testInfo.workerIndex ) ) ? process.env.TEST_SERVER : process.env.DEV_SERVER );
 	}, { scope: 'worker' } ],
 
 	// Use the same storage state for all tests in this worker.
@@ -16,8 +16,8 @@ export const parallelTest = baseTest.extend< NonNullable<unknown>, { workerStora
 
 	// Authenticate once per worker with a worker-scoped fixture.
 	workerStorageState: [ async ( { workerBaseURL }, use, testInfo ) => {
-		// Use parallelIndex as a unique identifier for each worker.
-		const id = testInfo.parallelIndex;
+		// Use workerIndex as a unique identifier for each worker.
+		const id = testInfo.workerIndex;
 		const fileName = path.resolve( testInfo.project.outputDir, `.storageState-${ id }.json` );
 
 		if ( fs.existsSync( fileName ) ) {
