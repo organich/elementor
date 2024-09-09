@@ -1,4 +1,4 @@
-import { APIRequest, APIRequestContext, Browser, Page } from '@playwright/test';
+import { APIRequest, APIRequestContext, Page, chromium } from '@playwright/test';
 
 export async function login( apiRequest: APIRequest, user: string, password: string, baseUrl: string ) {
 	// Important: make sure we authenticate in a clean environment by unsetting storage state.
@@ -16,7 +16,7 @@ export async function login( apiRequest: APIRequest, user: string, password: str
 	return context;
 }
 
-export async function fetchNonce( context: APIRequestContext, browser: Browser, baseUrl: string ) {
+export async function fetchNonce( context: APIRequestContext, baseUrl: string ) {
 	const response = await context.get( `${ baseUrl }/wp-admin/post-new.php` );
 
 	if ( ! response.ok() ) {
@@ -29,23 +29,7 @@ export async function fetchNonce( context: APIRequestContext, browser: Browser, 
 
 	let pageText = await response.text();
 	if ( pageText.includes( 'WordPress has been updated! Next and final step is to update your database to the newest version' ) ) {
-		const contextUI = await browser.newContext();
-		const page: Page = await contextUI.newPage();
-		await page.goto( `${ baseUrl }/wp-admin/post-new.php` );
-		await page.getByText( 'Update WordPress Database' ).click();
-		await page.getByText( 'Continue' ).click();
-
-		const retryResponse = await context.get( `${ baseUrl }/wp-admin/post-new.php` );
-		if ( ! retryResponse.ok() ) {
-			throw new Error( `
-                Failed to fetch nonce after database update: ${ retryResponse.status }.
-                ${ await retryResponse.text() }
-                ${ retryResponse.url() }
-            ` );
-		}
-
-		pageText = await retryResponse.text();
-		await browser.close();
+		pageText = await updateDatabase( context, baseUrl );
 	}
 
 	const nonceMatch = pageText.match( /var wpApiSettings = .*;/ );
@@ -54,5 +38,27 @@ export async function fetchNonce( context: APIRequestContext, browser: Browser, 
 	}
 
 	return nonceMatch[ 0 ].replace( /^.*"nonce":"([^"]*)".*$/, '$1' );
+}
+
+async function updateDatabase( context: APIRequestContext, baseUrl: string ) {
+	const browser = await chromium.launch();
+	const browserContext = await browser.newContext();
+	const page: Page = await browserContext.newPage();
+	await page.goto( '/wp-admin/post-new.php' );
+	await page.getByText( 'Update WordPress Database' ).click();
+	await page.getByText( 'Continue' ).click();
+
+	const retryResponse = await context.get( `${ baseUrl }/wp-admin/post-new.php` );
+	if ( ! retryResponse.ok() ) {
+		throw new Error( `
+                Failed to fetch nonce after database update: ${ retryResponse.status }.
+                ${ await retryResponse.text() }
+                ${ retryResponse.url() }
+            ` );
+	}
+
+	const pageText = await retryResponse.text();
+	await browser.close();
+	return pageText;
 }
 
