@@ -17,7 +17,7 @@ export const parallelTest = baseTest.extend< NonNullable<unknown>, { workerStora
 	// Authenticate once per worker with a worker-scoped fixture.
 	workerStorageState: [ async ( { workerBaseURL }, use, testInfo ) => {
 		// Use parallelIndex as a unique identifier for each worker.
-		const id = testInfo.workerIndex;
+		const id = testInfo.parallelIndex;
 		const fileName = path.resolve( testInfo.project.outputDir, `.storageState-${ id }.json` );
 
 		if ( fs.existsSync( fileName ) ) {
