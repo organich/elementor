@@ -1,4 +1,4 @@
-import { APIRequest, APIRequestContext, chromium, Page } from '@playwright/test';
+import { APIRequest, APIRequestContext, Browser, Page } from '@playwright/test';
 
 export async function login( apiRequest: APIRequest, user: string, password: string, baseUrl: string ) {
 	// Important: make sure we authenticate in a clean environment by unsetting storage state.
@@ -16,7 +16,7 @@ export async function login( apiRequest: APIRequest, user: string, password: str
 	return context;
 }
 
-export async function fetchNonce( context: APIRequestContext, baseUrl: string ) {
+export async function fetchNonce( context: APIRequestContext, browser: Browser, baseUrl: string ) {
 	const response = await context.get( `${ baseUrl }/wp-admin/post-new.php` );
 
 	if ( ! response.ok() ) {
@@ -29,7 +29,6 @@ export async function fetchNonce( context: APIRequestContext, baseUrl: string ) 
 
 	let pageText = await response.text();
 	if ( pageText.includes( 'WordPress has been updated! Next and final step is to update your database to the newest version' ) ) {
-		const browser = await chromium.launch();
 		const contextUI = await browser.newContext();
 		const page: Page = await contextUI.newPage();
 		await page.goto( `${ baseUrl }/wp-admin/post-new.php` );
