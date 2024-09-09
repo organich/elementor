@@ -1,4 +1,4 @@
-import { APIRequest, APIRequestContext, Page, chromium } from '@playwright/test';
+import { APIRequest, APIRequestContext, Page, chromium, APIResponse } from '@playwright/test';
 
 export async function login( apiRequest: APIRequest, user: string, password: string, baseUrl: string ) {
 	// Important: make sure we authenticate in a clean environment by unsetting storage state.
@@ -19,16 +19,10 @@ export async function login( apiRequest: APIRequest, user: string, password: str
 export async function fetchNonce( context: APIRequestContext, baseUrl: string ) {
 	const response = await context.get( `${ baseUrl }/wp-admin/post-new.php` );
 
-	if ( ! response.ok() ) {
-		throw new Error( `
-            Failed to fetch nonce: ${ response.status }.
-            ${ await response.text() }
-            ${ response.url() }
-        ` );
-	}
+	await validateResponse( response, 'Failed to fetch page' );
 
 	let pageText = await response.text();
-	if ( pageText.includes( 'WordPress has been updated! Next and final step is to update your database to the newest version' ) ) {
+	if ( pageText.includes( 'WordPress has been updated!' ) ) {
 		pageText = await updateDatabase( context, baseUrl );
 	}
 
@@ -40,7 +34,7 @@ export async function fetchNonce( context: APIRequestContext, baseUrl: string ) 
 	return nonceMatch[ 0 ].replace( /^.*"nonce":"([^"]*)".*$/, '$1' );
 }
 
-async function updateDatabase( context: APIRequestContext, baseUrl: string ) {
+async function updateDatabase( context: APIRequestContext, baseUrl: string ): Promise<string> {
 	const browser = await chromium.launch();
 	const browserContext = await browser.newContext();
 	const page: Page = await browserContext.newPage();
@@ -49,16 +43,18 @@ async function updateDatabase( context: APIRequestContext, baseUrl: string ) {
 	await page.getByText( 'Continue' ).click();
 
 	const retryResponse = await context.get( `${ baseUrl }/wp-admin/post-new.php` );
-	if ( ! retryResponse.ok() ) {
-		throw new Error( `
-                Failed to fetch nonce after database update: ${ retryResponse.status }.
-                ${ await retryResponse.text() }
-                ${ retryResponse.url() }
-            ` );
-	}
 
 	const pageText = await retryResponse.text();
 	await browser.close();
 	return pageText;
 }
 
+async function validateResponse( response: APIResponse, errorMessage: string ) {
+	if ( ! response.ok() ) {
+		throw new Error( `
+            ${ errorMessage }: ${ response.status }.
+            ${ await response.text() }
+            ${ response.url() }
+        ` );
+	}
+}
