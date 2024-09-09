@@ -1,10 +1,10 @@
-import { request, test as baseTest } from '@playwright/test';
+import { request, test as baseTest, Browser } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 import { fetchNonce, login } from './wp-authentication';
 import ApiRequests from './assets/api-requests';
 
-export const parallelTest = baseTest.extend< NonNullable<unknown>, { workerStorageState: string, workerBaseURL: string, apiRequests: ApiRequests }>( {
+export const parallelTest = baseTest.extend< NonNullable<unknown>, { workerStorageState: string, workerBaseURL: string, apiRequests: ApiRequests, browser: Browser }>( {
 	// Use the same storage state for all tests in this worker.
 	baseURL: ( { workerBaseURL }, use ) => use( workerBaseURL ),
 	workerBaseURL: [ async ( {}, use, testInfo ) => {
@@ -35,10 +35,10 @@ export const parallelTest = baseTest.extend< NonNullable<unknown>, { workerStora
 	}, { scope: 'worker' } ],
 
 	// Use the same storage state for all tests in this worker.
-	apiRequests: [ async ( { workerStorageState, workerBaseURL }, use ) => {
+	apiRequests: [ async ( { workerStorageState, workerBaseURL, browser }, use ) => {
 		const context = await request.newContext( { storageState: workerStorageState } );
 		try {
-			const nonce = await fetchNonce( context, workerBaseURL );
+			const nonce = await fetchNonce( context, workerBaseURL, browser );
 			const apiRequests = new ApiRequests( workerBaseURL, nonce );
 			await use( apiRequests );
 		} catch ( e ) {

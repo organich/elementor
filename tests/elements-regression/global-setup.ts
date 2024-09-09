@@ -1,16 +1,16 @@
-import { request, type FullConfig } from '@playwright/test';
+import { request, type FullConfig, Browser } from '@playwright/test';
 import ApiRequests from '../playwright/assets/api-requests';
 import path from 'path';
 import { fetchNonce, login } from '../playwright/wp-authentication';
 
-async function globalSetup( config: FullConfig ) {
+async function globalSetup( config: FullConfig, browser: Browser ) {
 	const { baseURL } = config.projects[ 0 ].use;
 
 	let context = await login( request, process.env.USERNAME || 'admin', process.env.PASSWORD || 'password', baseURL );
 	const storageState = await context.storageState();
 	await context.dispose();
 	context = await request.newContext( { storageState } );
-	const nonce = await fetchNonce( context, baseURL );
+	const nonce = await fetchNonce( context, baseURL, browser );
 
 	const imageIds = [];
 	const image1 = {

@@ -31,7 +31,7 @@ export async function fetchNonce( context: APIRequestContext, baseUrl: string, b
 	if ( pageText.includes( 'WordPress has been updated! Next and final step is to update your database to the newest version' ) ) {
 		const contextUI = await browser.newContext();
 		const page = await contextUI.newPage();
-		await page.goto( '/wp-admin/post-new.php' );
+		await page.goto( `${ baseUrl }/wp-admin/post-new.php` );
 		await page.getByText( 'Update WordPress Database' ).click();
 		await page.getByText( 'Continue' ).click();
 
