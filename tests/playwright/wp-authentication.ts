@@ -44,7 +44,7 @@ async function updateDatabase( context: APIRequestContext, baseUrl: string ) {
 	const browser = await chromium.launch();
 	const browserContext = await browser.newContext();
 	const page: Page = await browserContext.newPage();
-	await page.goto( '/wp-admin/post-new.php' );
+	await page.goto( `${ baseUrl }/wp-admin/post-new.php` );
 	await page.getByText( 'Update WordPress Database' ).click();
 	await page.getByText( 'Continue' ).click();
 
