@@ -1,4 +1,4 @@
-import { APIRequest, APIRequestContext, Browser, chromium, Page } from '@playwright/test';
+import { APIRequest, APIRequestContext, chromium, Page } from '@playwright/test';
 
 export async function login( apiRequest: APIRequest, user: string, password: string, baseUrl: string ) {
 	// Important: make sure we authenticate in a clean environment by unsetting storage state.
