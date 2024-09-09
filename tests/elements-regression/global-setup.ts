@@ -1,26 +1,38 @@
-import { FullConfig, chromium } from '@playwright/test';
-import { loginApi } from '../playwright/wp-authentication';
+import { request, type FullConfig } from '@playwright/test';
+import ApiRequests from '../playwright/assets/api-requests';
+import path from 'path';
+import { fetchNonce, login } from '../playwright/wp-authentication';
 
-export async function globalSetup( config: FullConfig ) {
-	const { baseURL, headless } = config.projects[ 0 ].use;
-	const browser = await chromium.launch( { headless } );
-	const context = await browser.newContext();
-	const page = await context.newPage();
-	const cookies = await loginApi(
-		process.env.USERNAME || 'admin',
-		process.env.PASSWORD || 'password',
-		process.env.BASE_URL || 'http://localhost:8888',
-	);
-	await context.addCookies( cookies );
-	await page.goto( `${ baseURL }/wp-admin` );
-	await page.getByText( 'Dashboard' ).nth( 0 ).waitFor();
+async function globalSetup( config: FullConfig ) {
+	const { baseURL } = config.projects[ 0 ].use;
 
-	let window: any;
-	process.env.WP_REST_NONCE = await page.evaluate( () => window.wpApiSettings.nonce );
-	const storageState = await page.context().storageState( { path: './storageState.json' } );
-	process.env.STORAGE_STATE = JSON.stringify( storageState );
-	process.env.BASE_URL = baseURL;
-	return { page, storageState, baseURL, browser };
+	let context = await login( request, process.env.USERNAME || 'admin', process.env.PASSWORD || 'password', baseURL );
+	const storageState = await context.storageState();
+	await context.dispose();
+	context = await request.newContext( { storageState } );
+	const nonce = await fetchNonce( context, baseURL );
+
+	const imageIds = [];
+	const image1 = {
+		filePath: path.resolve( __dirname, 'assets/test-images/image1.jpg' ),
+		title: 'image1',
+		extension: 'jpg',
+	};
+	const image2 = {
+		filePath: path.resolve( __dirname, 'assets/test-images/image2.jpg' ),
+		title: 'image2',
+		extension: 'jpg',
+	};
+
+	const apiRequests = new ApiRequests( baseURL, nonce );
+	imageIds.push( await apiRequests.createMedia( context, image1 ) );
+	imageIds.push( await apiRequests.createMedia( context, image2 ) );
+
+	// Teardown function.
+	return async () => {
+		await apiRequests.deleteMedia( context, imageIds );
+		await apiRequests.cleanUpTestPages( context );
+	};
 }
 
 export default globalSetup;
