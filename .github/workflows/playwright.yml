@@ -30,6 +30,12 @@ on:
             required: true
             description: 'Cancel tests when one of them fails'
             default: false
+        runOnLatestWP:
+          type: boolean
+          required: false
+          description: 'Run on nightly WP build'
+          default: false
+
 
 # This allows a subsequently queued workflow run to interrupt previous runs
 concurrency:
@@ -78,7 +84,7 @@ jobs:
         run: |
           npm run start-local-server
       - name: Update wordpress to nightly build
-       # if: ${{ github.event_name == 'schedule' }}
+        if: ${{ github.event_name == 'schedule' || runOnLatestWP == 'true' }}
         run: npx wp-env run cli wp core update https://wordpress.org/nightly-builds/wordpress-latest.zip
       - name: Setup test data
         run: npm run test:setup:playwright
