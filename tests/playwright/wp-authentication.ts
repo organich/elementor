@@ -1,4 +1,4 @@
-import { APIRequest, APIRequestContext } from '@playwright/test';
+import { APIRequest, APIRequestContext, Page } from '@playwright/test';
 
 export async function login( apiRequest: APIRequest, user: string, password: string, baseUrl: string ) {
 	// Important: make sure we authenticate in a clean environment by unsetting storage state.
@@ -16,7 +16,7 @@ export async function login( apiRequest: APIRequest, user: string, password: str
 	return context;
 }
 
-export async function fetchNonce( context: APIRequestContext, baseUrl: string ) {
+export async function fetchNonce( context: APIRequestContext, baseUrl: string, page: Page ) {
 	const response = await context.get( `${ baseUrl }/wp-admin/post-new.php` );
 
 	if ( ! response.ok() ) {
@@ -30,9 +30,9 @@ export async function fetchNonce( context: APIRequestContext, baseUrl: string ) 
 	let pageText = await response.text();
 
 	if ( pageText.includes( 'WordPress has been updated! Next and final step is to update your database to the newest version' ) ) {
-		await new Promise( ( resolve ) => setTimeout( resolve, 2 * 60 * 1000 ) ); // 2 minutes delay
+		await page.getByText( 'Update WordPress Database' ).click();
+		await page.getByText( 'Continue' ).click();
 
-		// After waiting, fetch the page content again
 		const retryResponse = await context.get( `${ baseUrl }/wp-admin/post-new.php` );
 		if ( ! retryResponse.ok() ) {
 			throw new Error( `
